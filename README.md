@@ -230,7 +230,7 @@ as this works via command you can also use json `[...]/json.htm?type=command&par
 ### Text device Receiver
 * shows last received messages
 * test with `http://dom-pi:8080/json.htm?type=command&param=udevice&idx=68&nvalue=0&&svalue=%27Message%27,%20%27Tes%27,%20%27received%20in%20group%27,%20%27%27`
-* keep in mind to adapt python file to set Index of this text device see [setup](####prepare python script)
+* keep in mind to adapt python file to set Index of this text device see [setup](####prepare-python-script)
 * run external python receiver `python3 receiver.py` 
 
 ## Ideas
