@@ -1,18 +1,20 @@
-# plugin for signal secure msg
-#
-# Author: belze
-#
+"""
+ plugin for signal secure msg
+Author: belze
+0.0.1   initial version with sending support
+0.0.2   receiving support via external service and update via JSON call
+"""
 
 """
-<plugin key="SignalMessenger" name="Signal Messenger via DBus" author="belze" version="0.0.1"
+<plugin key="SignalMessenger" name="Signal Messenger via DBus" author="belze" version="0.0.2"
 externallink="https://github.com/belzetrigger/domoticz-SignalDBus" >
     <description>
         <h2>Signal Messenger</h2><br/>
         Interact with the whisper-systems-signal-messenger-client aka Signal to send send messagesself.
         <h3>Features</h3>
         <ul style="list-style-type:square">
-            <li>send a messages to signal for phone numbers</li>
-            <li>send a messages to groups</li>
+            <li>send a message to signal for phone numbers</li>
+            <li>send a message to groups</li>
             <li>add an attachment to messages</li>
             <li>commands can be send by json or switch</li>
         </ul>
@@ -78,9 +80,9 @@ USE_SYSTEM_BUS = True  # if true we use SystemBus directly
 # icons
 
 # units
-UNIT_TXT_IDX = 1
-UNIT_TXT_NAME = "Text"
-UNIT_TXT_OPTIONS = ""
+UNIT_TXT_RECEIVER_IDX = 1
+UNIT_TXT_RECEIVER_NAME = "Receiver"
+UNIT_TXT_RECEIVER_OPTIONS = ""
 
 UNIT_SWITCH_IDX = 2
 UNIT_SWITCH_NAME = "Signal Message"
@@ -93,6 +95,10 @@ UNIT_SWITCH_LVL_MSG_NR = 20
 UNIT_SWITCH_LVL_MSR_NR_ATTACH = 30
 UNIT_SWITCH_LVL_MSG_GRP = 40
 UNIT_SWITCH_LVL_MSR_GRP_ATTACH = 50
+
+UNIT_TXT_SENDER_IDX = 3
+UNIT_TXT_SENDER_NAME = "Sender"
+UNIT_TXT_SENDER_OPTIONS = ""
 
 
 class BasePlugin:
@@ -154,11 +160,11 @@ class BasePlugin:
 
         # test connection
         # self.tcpConn = Domoticz.Connection(Name="dbus Socket Test", Transport="TCP/IP",
-        # Protocol="Line",
+        #                                   Protocol="Line",
         #                                  Protocol="None",
-        #                                 Address="localhost", Port="55558")
+        #                                  Address="localhost", Port="55558")
         # self.tcpConn.Connect()
-
+        # self.tcpConn.Listen()
         # to use async calls we need this ....
         # dbus.mainloop..DBusGMainLoop(set_as_default=True)
 
@@ -213,6 +219,7 @@ class BasePlugin:
                 Connection.Address, Connection.Port)
             )
             Domoticz.Debug("connected successfully.")
+            Connection.l
             # TODO try to connect to it
             # try:
             # to use async calls we need this ....
@@ -249,17 +256,42 @@ class BasePlugin:
     def onMessage(self, Connection, Data):
         Domoticz.Log("onMessage called")
 
+    def onDeviceModified(self, Unit):
+        Domoticz.Log("onDeviceModified called for Unit " +
+                     str(Unit) )
+        # TODO do some use full things ...
+        if(Unit == UNIT_TXT_RECEIVER_IDX):
+            Domoticz.Log("we got something on our receiver. {} ".format(Devices[UNIT_TXT_RECEIVER_IDX].sValue))
+
     def onCommand(self, Unit, Command, Level, Hue):
         Domoticz.Log("onCommand called for Unit " +
                      str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
         Command = Command.strip()
         action, sep, params = Command.partition(' ')
         action = action.capitalize()
-        params = params.capitalize()
+        #params = params.capitalize()
         try:
+            Domoticz.Debug("BLZ: onCommand called for Unit " +
+                           str(Unit) + ": action '" + str(action) + "', params: " + str(params))
+
             if (Unit == UNIT_SWITCH_IDX):
-                if (action == "On" or Command == "On"):
+                # Listen to sending commands
+                if (action.lower() == "SendNotification".lower()):
+                    Domoticz.Debug("SendNotification: {}".format(params))
+                    r = self.signalHelper.sendMsg(params, self.recipient)
+                    Devices[UNIT_TXT_SENDER_IDX].Update(nValue=1, sValue=str(params))
+                elif (action.lower() == "SendGroupNotification".lower()):
+                    Domoticz.Debug("SendGroupNotification: {}".format(params))
+                    r = self.signalHelper.sendGrpMsg(params, self.groupName)
+                    Devices[UNIT_TXT_SENDER_IDX].Update(nValue=1, sValue=str(params))
+
+                # Test via button
+                elif (action == "On" or Command == "On"):
                     Domoticz.Debug("On - not supported ")
+                elif (action == "sendNotification"):
+                    Domoticz.Debug("sendNotification: {}".format(params))
+                    r = self.signalHelper.sendMsg(params, self.recipient)
+
                 elif (action == "Set"):
                     Domoticz.Debug("Set")
                     if(Level == UNIT_SWITCH_LVL_REGISTERED):
@@ -291,7 +323,7 @@ class BasePlugin:
             Domoticz.Error("Error on deal with unit {}: msg *{}*;".format(Unit, e))
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
-        Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," +
+        Domoticz.Log("BLZ Notification: " + Name + "," + Subject + "," + Text + "," +
                      Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
 
     def onDisconnect(self, Connection):
@@ -364,6 +396,11 @@ def onMessage(Connection, Data):
     _plugin.onMessage(Connection, Data)
 
 
+def onDeviceModified(Unit):
+    global _plugin
+    _plugin.onDeviceModified(Unit)
+
+
 def onCommand(Unit, Command, Level, Hue):
     global _plugin
     _plugin.onCommand(Unit, Command, Level, Hue)
@@ -402,12 +439,12 @@ def DumpConfigToLog():
 
 
 def createDevices():
-    if UNIT_TXT_IDX not in Devices:
-        Domoticz.Device(Name=UNIT_TXT_NAME, Unit=UNIT_TXT_IDX, TypeName="Text",
+    if UNIT_TXT_RECEIVER_IDX not in Devices:
+        Domoticz.Device(Name=UNIT_TXT_RECEIVER_NAME, Unit=UNIT_TXT_RECEIVER_IDX, TypeName="Text",
                         Used=1,
-                        Options=UNIT_TXT_OPTIONS
+                        Options=UNIT_TXT_RECEIVER_OPTIONS
                         ).Create()
-        Domoticz.Log("Devices[UNIT_TXT_IDX={}] created.".format(UNIT_TXT_IDX))
+        Domoticz.Log("Devices[UNIT_TXT_RECEIVER_IDX={}] created.".format(UNIT_TXT_RECEIVER_IDX))
     #   updateImageByUnit(UNIT_CMD_SWITCH_IDX, ICON_ADMIN)
 
     if UNIT_SWITCH_IDX not in Devices:
@@ -417,130 +454,9 @@ def createDevices():
         Domoticz.Log("Devices[UNIT_SWITCH_IDX={}] created.".format(UNIT_SWITCH_IDX))
     #    updateImageByUnit(UNIT_SWITCH_IDX, ICON_ADMIN)
 
-
-# def connectToSystemBus(enableLoop: bool = False):
-#     if enableLoop:
-#         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-#     return dbus.SystemBus()
-
-
-# def connectToBus(enableLoop: bool = False, address: str = "tcp:host=localhost,port=55558"):
-#     if enableLoop:
-#         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-#     b = dbus.bus.BusConnection(address)
-#     return b
-
-
-# def getSignalProxy(myBus):
-#     o = myBus.get_object(
-#         "org.asamk.Signal",  # Bus name
-#         "/org/asamk/Signal"  # Object path
-#     )
-#     return o
-
-
-# def introspect(proxy):
-#     #  Introspection returns an XML document containing information
-#     # about the methods supported by an interface.
-#     r = proxy.Introspect()
-#     # TODO print it
-#     return r
-
-
-# def isRegistered(proxy):
-#     isRegistered = proxy.isRegistered()
-#     b: bool = (isRegistered == dbus.Boolean(1))
-#     return b
-
-
-# def getGroups(proxy):
-#     groups = dict()
-#     gIds: dbus.Array = proxy.getGroupIds()
-#     for g in gIds:
-#         gName = proxy.getGroupName(g)
-#         groups[gName] = g
-#         Domoticz.Debug(" group id: {}  name: {}".format(g, gName))
-#     return groups
-
-#  # msg = dbus.String(self.text)
-#     # nr = dbus.String(self.recipient)
-#     # att = dbus.Array([], signature='s')
-#     # Domoticz.Debug(" msg: {} to: {} ".format(msg, nr))
-#     # send to group
-#     # r = self.signalObject.sendGroupMessage(msg, att, dbGroups[0])
-#     # Domoticz.Debug(" grp send result: {} ".format(r))
-#     # send to number
-#     # r = self.signalObject.sendMessage(msg, att, nr)
-#     # Domoticz.Debug(" nr send result: {} ".format(r))
-#     # reply_handler=handle_hello_reply,
-#     #                           error_handler=handle_hello_error)
-
-
-# def sendGrpMsg(proxy, text: str, groupName: str, groups):
-#     # get group id based on name
-#     Domoticz.Debug(" grp msg: {} to: {} ".format(text, groupName))
-#     dbMsg = dbus.String(text)
-#     att = dbus.Array([], signature='s')
-#     grpId = groups[groupName]
-#     # grpId = groups[0]
-#     if not grpId:
-#         raise Exception("GroupNotFoundExcpetion")
-#     try:
-#         r = proxy.sendGroupMessage(dbMsg, att, grpId)
-#         Domoticz.Debug(" nr send result: {} ".format(r))
-#     except Exception as e:
-#         Domoticz.Error("error  {} ".format(e))
-#     return r
-
-
-# def sendMsg(proxy, text: str, nr: str, attachment: str = None):
-#     dbMsg = dbus.String(text)
-#     dbNr = dbus.String(nr)
-#     att = None
-#     if not attachment:
-#         att = dbus.Array([], signature='s')
-#     else:
-#         da = dbus.String(attachment)
-#         att = dbus.Array([da], signature='s')
-#     Domoticz.Debug(" msg: {} to: {} ".format(text, nr))
-#     # send to group
-#     # r = self.signalObject.sendGroupMessage(msg, att, dbGroups[0])
-#     # Domoticz.Debug(" grp send result: {} ".format(r))
-#     # send to number
-#     try:
-#         r = proxy.sendMessage(dbMsg, att, dbNr)
-#         Domoticz.Debug(" nr send result: {} ".format(r))
-#     except Exception as e:
-#         Domoticz.Error("error  {} ".format(e))
-#     return r
-
-
-# def addReceiver(proxy):
-#     Domoticz.Debug("add Receiver")
-#     proxy.connect_to_signal("MessageReceived", msg_handler,
-#                             dbus_interface="org.asamk.Signal")
-
-
-# def handle_hello_reply(r):
-#     Domoticz.Error("#####Reply {}".format(r))
-
-
-# def handle_hello_error(e):
-#     Domoticz.Error("####Error {}".format(e))
-
-
-# def msgRcv(timestamp, source, groupID, message, attachments):
-#     Domoticz.Error("Message {} received in group ".format(message))
-#     return
-
-
-# def catchall_signal_handler(*args, **kwargs):
-#     Domoticz.Log("Caught signal (in catchall handler) " +
-#                  kwargs['dbus_interface'] + "." + kwargs['member'])
-#     for arg in args:
-#         Domoticz.Log("        " + str(arg))
-
-
-# def msg_handler():
-#     """Signal handler for quitting the receiver."""
-#     Domoticz.Error('Quitting....')
+    if UNIT_TXT_SENDER_IDX not in Devices:
+        Domoticz.Device(Name=UNIT_TXT_SENDER_NAME, Unit=UNIT_TXT_SENDER_IDX, TypeName="Text",
+                        Used=1,
+                        Options=UNIT_TXT_SENDER_OPTIONS
+                        ).Create()
+        Domoticz.Log("Devices[UNIT_TXT_SENDER={}] created.".format(UNIT_TXT_SENDER_IDX))

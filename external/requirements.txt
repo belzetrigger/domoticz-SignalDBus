@@ -1,0 +1,8 @@
+# for external reciever.py
+requests
+urllib3
+pydbus
+PyGObject
+filetype
+systemd
+python-pidfile

@@ -1,5 +1,3 @@
-
-
 # domoticz-SignalDBus
 <!---
 [![GitHub license](https://img.shields.io/github/license/belzetrigger/domoticz-SignalDBus.svg)](https://github.com/belzetrigger/domoticz-SignalDBus/blob/master/LICENSE)
@@ -10,15 +8,17 @@
 
 Early state of notification plugin that works with [Secure Messenger Signal](https://signal.org/)
 
-| Device | Image          | Comment                                          |
-| ------ | -------------- | ------------------------------------------------ |
-| Test   | todo add image | test quickly sending messages to number or group |
+| Device               | Image          | Comment                                          |
+| -------------------- | -------------- | ------------------------------------------------ |
+| Selector Switch Test | todo add image | test quickly sending messages to number or group |
+| Text: Sender         |                | displays last send message                       |
+| Text: Receiver       |                | displays last received message                   |
 
 
 ## Summary
 I recently come across [Unoffical WhatsApp Notification](https://www.domoticz.com/wiki/Unofficial_Whatsapp_-_Notification_System_-_Doorbell_example). Nice one. 
 I just prefer Signal. So why not try similar thing with Signal. So here we are. 
-Using an [Interface](https://github.com/AsamK/signal-cli/) that expose the signal functions to DBus. So they should be available without knowing and integrating original libs to Domoticz Plugin.
+Using an [Interface](https://github.com/AsamK/signal-cli/) that expose the signal functions to DBus. So they should be available without knowing and integrating original libs to Domoticz Plugin. But you need an OS supporting DBus - mostly Linux. 
 
 This plugin is open source.
 
@@ -49,6 +49,7 @@ Images: Signal Logo from signal.org and there github.
     # wait for calling machine to get pin code, replace yyyyyy with the real code
     signal-cli -u +49xxx verify yyyyyy
     ```
+- downside is, that received attachments are stored in this user dir
 ### test and trust
 #### send
 - just send your self a message
@@ -168,6 +169,43 @@ Besides of this, to expose system bus over tcp might be also a security risk as 
 | group        | optional name of a signal group to send to                                               |
 | Update every | Polling time, at the moment just used for is a live ping to bus                          |
 | Debug        | if True, the log will be hold a lot more output.                                         |
+
+### Receiver
+Unfortunately most stable way was to run external script and make an HTTP call 
+to devices. Might change in future. Have a look into [Ideas](##Ideas)
+So we use a device to display received messages within domoticz and an external 
+service to listen and forward incoming messages to domoticz. 
+
+#### systemd receiver service
+This needs some libs. So run from dir /external
+`sudo pip3 install -r requirements.txt`
+##### prepare python script
+adapt in `signalDomoticzService.py` URL and id of receiver device. 
+```Python
+[...]
+DOM_BASE_URL = "http://localhost:8080"  # base url for domoticz
+DOM_DEV_IDX = 68                        # id of receiver text device
+```
+
+##### set up service
+check service file for path and user within the unit file. `signalDomoticzService.service`. After that copy an setup system.
+
+```bash
+sudo cp /home/domoticz/domoticz/plugins/external/signalDomoticzService.service /etc/systemd/system/
+sudo chown root:root /etc/systemd/system/signalDomoticzService.service
+sudo chmod 644 /etc/systemd/system/signalDomoticzService.service
+
+sudo systemctl daemon-reload
+sudo systemctl enable signalDomoticzService.service
+sudo systemctl start signalDomoticzService.service 
+```
+
+##### check status
+after start check status
+`sudo systemctl start signalDomoticzService.service `
+`sudo journalctl signalDomoticzService` 
+
+
 ## Usage
 ### Selector Switch for testing
 this functions are supported
@@ -180,21 +218,45 @@ this functions are supported
   for test we just use logo from `.../domoticz/www/ images/logo/180.png`
 * Name of switch will change and show result as suffix and give so some feedback
 as this works via command you can also use json `[...]/json.htm?type=command&param=switchlight&idx=69&switchcmd=Set%20Level&level=40`
+* additonal commands
+    `http://dom-pi:8080/json.htm?type=command&param=switchlight&idx=69&switchcmd=sendNotification%20Hello my Friend`
+    
+    `http://dom-pi:8080/json.htm?type=command&param=switchlight&idx=69&switchcmd=sendGroupNotification%20BlaBla%20Bla`
 
+### Text device Sender
+* shows last send messages
+* so it's kind of an logger
+
+### Text device Receiver
+* shows last received messages
+* test with `http://dom-pi:8080/json.htm?type=command&param=udevice&idx=68&nvalue=0&&svalue=%27Message%27,%20%27Tes%27,%20%27received%20in%20group%27,%20%27%27`
+* keep in mind to adapt python file to set Index of this text device see [setup](####prepare python script)
+* run external python receiver `python3 receiver.py` 
+
+## Ideas
+As this is an early version, here just points to think about for future.
+Receiver
+* use device modification for receiving or just command call to main device
+* try to access messages cache from signal-cli
+* run a daemon and put messages into a message log, and just check from device this log
+* fetch it directly from inside domoticz via tcp socket connect to DBus
 
 ## Bugs and ToDos
-* add a receiver
+* external receiver script -> create pid file
 * more stability like 
   * check if connected 
   * check given parameters
 * might just hook on the bus, if msg send required and use 
   heart beat to check if is available                                                               
+* stay with DBUS? Or just call directly?
+
+
 
 ## Versions
-| Version | Note                                                               |
-| ------- | ------------------------------------------------------------------ |
-| 0.0.1   | First version of this plugin. Supports sending to group and number |
-
+| Version | Note                                                                                                                           |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 0.0.1   | First version of this plugin. Supports sending to group and number                                                             |
+| 0.0.2   | extended commands, so text to send can be add as argument.<br/>Sample receiver added to fetch messages and forward to domoticz |
 
 ## State
 Under development but main function runs quite stabile.
