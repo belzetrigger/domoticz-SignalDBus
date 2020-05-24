@@ -4,16 +4,21 @@
 -->
 
 [![PyPI pyversions](https://img.shields.io/badge/python-3.6%20|%203.7%20|%203.8-blue.svg)]() 
-[![Plugin version](https://img.shields.io/badge/version-0.0.1-red.svg)](https://github.com/belzetrigger/domoticz-SignalDBus/branches/)
+[![Plugin version](https://img.shields.io/badge/version-0.0.3-red.svg)](https://github.com/belzetrigger/domoticz-SignalDBus/branches/)
 
 Early state of notification plugin that works with [Secure Messenger Signal](https://signal.org/)
 
-| Device               | Image          | Comment                                          |
-| -------------------- | -------------- | ------------------------------------------------ |
-| Selector Switch Test | todo add image | test quickly sending messages to number or group |
-| Text: Sender         |                | displays last send message                       |
-| Text: Receiver       |                | displays last received message                   |
+| Device          | Image          | Comment                                                                             |
+| --------------- | -------------- | ----------------------------------------------------------------------------------- |
+| Selector Switch | todo add image | quickly sending test messages to number or group<br>and also kind of control center |
+| Text: Sender    |                | displays last send message                                                          |
+| Text: Receiver  |                | displays last received message                                                      |
 
+| Tools                         | Comment                                                      |
+| ----------------------------- | ------------------------------------------------------------ |
+| notifier.py                   | simple script to integrate in domoticz as `custom action`    |
+| signalDomoticzService.py      | script to listens for new signal messages and calls domoticz |
+| signalDomoticzService.service | to run the Listener as service                               |
 
 ## Summary
 I recently come across [Unoffical WhatsApp Notification](https://www.domoticz.com/wiki/Unofficial_Whatsapp_-_Notification_System_-_Doorbell_example). Nice one. 
@@ -56,7 +61,7 @@ Images: Signal Logo from signal.org and there github.
     ```bash
     signal-cli -u +49xxx send -m "This is a message" +4916xx
     ```
-#### recieve
+#### receive
 - just pick your mobile and send an answer
     ```bash
     signal-cli -u +49aaaa receive
@@ -133,8 +138,6 @@ db=dbus.bus.BusConnection('tcp:host=localhost,port=55558')
 Further reading: https://stackoverflow.com/questions/10158684/connecting-to-dbus-over-tcp 
 Besides of this, to expose system bus over tcp might be also a security risk as well.
 
-
-
 ## Installation and Setup Plugin
 - a running Domoticz: tested with 2020.1 with Python 3.7
 - needed python modules:
@@ -156,10 +159,9 @@ Besides of this, to expose system bus over tcp might be also a security risk as 
 - restart Domoticz service
 - Now go to **Setup**, **Hardware** in your Domoticz interface. There add
 **Signal Messenger via DBus**.
+
 ### Settings
 <!-- prettier-ignore -->
-
-
 | Parameter    | Information                                                                              |
 | ------------ | ---------------------------------------------------------------------------------------- |
 | name         | Domoticz standard hardware name.                                                         |
@@ -169,6 +171,24 @@ Besides of this, to expose system bus over tcp might be also a security risk as 
 | group        | optional name of a signal group to send to                                               |
 | Update every | Polling time, at the moment just used for is a live ping to bus                          |
 | Debug        | if True, the log will be hold a lot more output.                                         |
+
+### Notification
+Quick version to use Signal Messenger also for notification. A simple python 
+script is used, to call the matching commands directly on domoticz.
+
+* Change permissions
+  `sudo chmod +x domoticz/plugins/domoticz-SignalDBus/external/notifier.py`
+
+* set up domoticz, go to Setup->settings->notifications tab, in the Custom HTTP/Action part add:
+```
+#FIELD1: [optional for -c: sendNotification|sendGroupNotification ]
+#FIELD2: [index of controll plugin]
+URL/Action: script:///home/domoticz/domoticz/plugins/domoticz-SignalDBus/external/notifier.py -m "#MESSAGE" -s "#SUBJECT" -i #FIELD2
+```
+* press the `test` button
+* if it works, apply your settings
+* if not, turn on DEBUG and have a look into Log and also check if Sender-Text-Device get changed.
+This is kind of a work around. Calling direct http request from notification to domoticz did not worked.
 
 ### Receiver
 Unfortunately most stable way was to run external script and make an HTTP call 
@@ -219,13 +239,18 @@ this functions are supported
 * Name of switch will change and show result as suffix and give so some feedback
 as this works via command you can also use json `[...]/json.htm?type=command&param=switchlight&idx=69&switchcmd=Set%20Level&level=40`
 * additonal commands
-    `http://dom-pi:8080/json.htm?type=command&param=switchlight&idx=69&switchcmd=sendNotification%20Hello my Friend`
-    
-    `http://dom-pi:8080/json.htm?type=command&param=switchlight&idx=69&switchcmd=sendGroupNotification%20BlaBla%20Bla`
+  * send to default number via `.../json.htm?type=command&param=switchlight&idx=[index]&switchcmd=sendNotification%20[message to send]`
+    * Example: `http://dom-pi:8080/json.htm?type=command&param=switchlight&idx=69&switchcmd=sendNotification%20Hello my Friend`
+  * send to default group via `.../json.htm?type=command&param=switchlight&idx=[index]&switchcmd=sendGroupNotification%20[message]`
+    * Example: `http://dom-pi:8080/json.htm?type=command&param=switchlight&idx=69&switchcmd=sendGroupNotification%20BlaBla%20Bla`
 
 ### Text device Sender
 * shows last send messages
 * so it's kind of an logger
+
+### Text device Sender with Notification
+If notification system was set up, just add notification to our device and make 
+sure html is active.
 
 ### Text device Receiver
 * shows last received messages
@@ -235,6 +260,8 @@ as this works via command you can also use json `[...]/json.htm?type=command&par
 
 ## Ideas
 As this is an early version, here just points to think about for future.
+Notification
+* try to call http request direct without notifier.py
 Receiver
 * use device modification for receiving or just command call to main device
 * try to access messages cache from signal-cli
@@ -257,6 +284,7 @@ Receiver
 | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | 0.0.1   | First version of this plugin. Supports sending to group and number                                                             |
 | 0.0.2   | extended commands, so text to send can be add as argument.<br/>Sample receiver added to fetch messages and forward to domoticz |
+| 0.0.3   | add example to integrate as notification sub system                                                                            |
 
 ## State
 Under development but main function runs quite stabile.

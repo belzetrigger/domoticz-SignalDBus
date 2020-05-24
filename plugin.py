@@ -3,10 +3,11 @@
 Author: belze
 0.0.1   initial version with sending support
 0.0.2   receiving support via external service and update via JSON call
+0.0.3   notification
 """
 
 """
-<plugin key="SignalMessenger" name="Signal Messenger via DBus" author="belze" version="0.0.2"
+<plugin key="SignalMessenger" name="Signal Messenger via DBus" author="belze" version="0.0.3"
 externallink="https://github.com/belzetrigger/domoticz-SignalDBus" >
     <description>
         <h2>Signal Messenger</h2><br/>
@@ -21,7 +22,8 @@ externallink="https://github.com/belzetrigger/domoticz-SignalDBus" >
         <h3>Devices</h3>
         <ul style="list-style-type:square">
             <li>Selector Switch - for testing sending messages </li>
-            <li>Device Type - What it does...</li>
+            <li>text device for received messages</li>
+            <li>text device for sent messages</li>
         </ul>
         <h3>Configuration</h3>
         Configuration options...
