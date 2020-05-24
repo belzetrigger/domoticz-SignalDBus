@@ -260,7 +260,7 @@ class BasePlugin:
 
     def onDeviceModified(self, Unit):
         Domoticz.Log("onDeviceModified called for Unit " +
-                     str(Unit) )
+                     str(Unit))
         # TODO do some use full things ...
         if(Unit == UNIT_TXT_RECEIVER_IDX):
             Domoticz.Log("we got something on our receiver. {} ".format(Devices[UNIT_TXT_RECEIVER_IDX].sValue))
