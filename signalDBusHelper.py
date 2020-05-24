@@ -104,8 +104,14 @@ class SignalHelper:
         self.errorMsg = None
 
     def stop(self):
-        self.isStopped = True
-        closeConnection()
+        if not self.isStopped:
+            self.isStopped = True
+            try:
+                self.closeConnection()
+            except Exception as e:
+                Domoticz.Error("Error on closing connection: {}".format(e))
+        else:
+            Domoticz.Debug("signal not jet init, so skip closing")
 
     def getSignalProxy(self):
         o = self.bus.get_object(
@@ -195,7 +201,7 @@ def python_to_dbus(data):
     if isinstance(data, str):
         data = dbus.String(data)
     elif isinstance(data, bool):
-        # python bools are also ints, order is important !
+        # python bool are also int, order is important !
         data = dbus.Boolean(data)
     elif isinstance(data, int):
         data = dbus.Int64(data)

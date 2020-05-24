@@ -14,11 +14,11 @@ Early state of notification plugin that works with [Secure Messenger Signal](htt
 | Text: Sender    |                | displays last send message                                                          |
 | Text: Receiver  |                | displays last received message                                                      |
 
-| Tools                         | Comment                                                      |
-| ----------------------------- | ------------------------------------------------------------ |
-| notifier.py                   | simple script to integrate in domoticz as `custom action`    |
-| signalDomoticzService.py      | script to listens for new signal messages and calls domoticz |
-| signalDomoticzService.service | to run the Listener as service                               |
+| Tools                         | Comment                                                        |
+| ----------------------------- | -------------------------------------------------------------- |
+| notifier.py                   | simple script to integrate in domoticz as `custom http action` |
+| signalDomoticzService.py      | script to listens for new signal messages and calls domoticz   |
+| signalDomoticzService.service | to run the Listener as service                                 |
 
 * [Setup Signal](#Prepare-Whisper-System-aka-Signal)
 * [Setup Domoticz](#Installation-and-Setup-Plugin)
@@ -162,6 +162,11 @@ Besides of this, to expose system bus over tcp might be also a security risk as 
     # config
     USE_SYSTEM_BUS = True
   ```
+  Just change it and restart service. 
+  Run `sudo netstat -ap | grep :<port_number>` to check if something is connected...
+  ```Bash
+  tcp6       0      0 localhost:55558         localhost:33024         VERBUNDEN   303/dbus-daemon
+  ```
 - restart Domoticz service
 - Now go to **Setup**, **Hardware** in your Domoticz interface. There add
 **Signal Messenger via DBus**.
@@ -177,6 +182,8 @@ Besides of this, to expose system bus over tcp might be also a security risk as 
 | group        | optional name of a signal group to send to                                               |
 | Update every | Polling time, at the moment just used for is a live ping to bus                          |
 | Debug        | if True, the log will be hold a lot more output.                                         |
+
+
 
 ### Notification
 Quick version to use Signal Messenger also for notification. A simple python 
@@ -276,7 +283,6 @@ Receiver
 * fetch it directly from inside domoticz via tcp socket connect to DBus
 
 ## Bugs and ToDos
-* external receiver script -> create pid file
 * more stability like 
   * check if connected 
   * check given parameters

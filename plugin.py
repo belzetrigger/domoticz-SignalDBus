@@ -77,8 +77,8 @@ except ImportError:
 from signalDBusHelper import SignalHelper
 
 # config
-USE_SYSTEM_BUS = True  # if true we use SystemBus directly
-
+USE_SYSTEM_BUS = True  # if true we use SystemBus directly, otherwise via TCP
+TEST_DOM_TCP = False     # test, try to use domoticz conneciton
 # icons
 
 # units
@@ -160,15 +160,16 @@ class BasePlugin:
         # switch them to Off state
         Devices[UNIT_SWITCH_IDX].Update(0, "Off", Name=UNIT_SWITCH_NAME)
 
-        # test connection
-        # self.tcpConn = Domoticz.Connection(Name="dbus Socket Test", Transport="TCP/IP",
-        #                                   Protocol="Line",
-        #                                  Protocol="None",
-        #                                  Address="localhost", Port="55558")
-        # self.tcpConn.Connect()
-        # self.tcpConn.Listen()
-        # to use async calls we need this ....
-        # dbus.mainloop..DBusGMainLoop(set_as_default=True)
+        if TEST_DOM_TCP:
+            # test connection
+            self.tcpConn = Domoticz.Connection(Name="dbus Socket Test", Transport="TCP/IP",
+                                               # Protocol="Line",
+                                               Protocol="None",
+                                               Address="localhost", Port=Parameters["Port"])
+            self.tcpConn.Connect()
+            # self.tcpConn.Listen()
+            # to use async calls we need this ....
+            # dbus.mainloop..DBusGMainLoop(set_as_default=True)
 
         try:
 
@@ -221,7 +222,6 @@ class BasePlugin:
                 Connection.Address, Connection.Port)
             )
             Domoticz.Debug("connected successfully.")
-            Connection.l
             # TODO try to connect to it
             # try:
             # to use async calls we need this ....
@@ -252,29 +252,29 @@ class BasePlugin:
             Domoticz.Error("Failed to connect to: {}:{}, Description: {}".format(
                 Connection.Address, Connection.Port, Description)
             )
-            Domoticz.Log("Failed to connect (" + str(Status) + ") to: "
-                         + Parameters["Address"] + ":" + Parameters["Port"] + " with error: " + Description)
+            Domoticz.Log("Failed to connect (" + str(Status) + ") to: " +
+                         Parameters["Address"] + ":" + Parameters["Port"] + " with error: " + Description)
 
     def onMessage(self, Connection, Data):
-        Domoticz.Log("onMessage called")
+        Domoticz.Log("BLZ#onMessage called, Data: {} ".format(Data))
 
     def onDeviceModified(self, Unit):
-        Domoticz.Log("onDeviceModified called for Unit " +
-                     str(Unit))
+        Domoticz.Log("onDeviceModified called for Unit "
+                     + str(Unit))
         # TODO do some use full things ...
         if(Unit == UNIT_TXT_RECEIVER_IDX):
             Domoticz.Log("we got something on our receiver. {} ".format(Devices[UNIT_TXT_RECEIVER_IDX].sValue))
 
     def onCommand(self, Unit, Command, Level, Hue):
-        Domoticz.Log("onCommand called for Unit " +
-                     str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
+        Domoticz.Log("onCommand called for Unit "
+                     + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
         Command = Command.strip()
         action, sep, params = Command.partition(' ')
         action = action.capitalize()
         #params = params.capitalize()
         try:
-            Domoticz.Debug("BLZ: onCommand called for Unit " +
-                           str(Unit) + ": action '" + str(action) + "', params: " + str(params))
+            Domoticz.Debug("BLZ: onCommand called for Unit "
+                           + str(Unit) + ": action '" + str(action) + "', params: " + str(params))
 
             if (Unit == UNIT_SWITCH_IDX):
                 # Listen to sending commands
@@ -325,8 +325,8 @@ class BasePlugin:
             Domoticz.Error("Error on deal with unit {}: msg *{}*;".format(Unit, e))
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
-        Domoticz.Log("BLZ Notification: " + Name + "," + Subject + "," + Text + "," +
-                     Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
+        Domoticz.Log("BLZ Notification: " + Name + "," + Subject + "," + Text + ","
+                     + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
 
     def onDisconnect(self, Connection):
         Domoticz.Log("onDisconnect called")
