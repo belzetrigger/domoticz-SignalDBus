@@ -20,6 +20,11 @@ Early state of notification plugin that works with [Secure Messenger Signal](htt
 | signalDomoticzService.py      | script to listens for new signal messages and calls domoticz |
 | signalDomoticzService.service | to run the Listener as service                               |
 
+ 
+[Setup Signal](#Prepare-Whisper-System-aka-Signal)
+[Setup Domoticz](#installation-and-setup-plugin)
+
+
 ## Summary
 I recently come across [Unoffical WhatsApp Notification](https://www.domoticz.com/wiki/Unofficial_Whatsapp_-_Notification_System_-_Doorbell_example). Nice one. 
 I just prefer Signal. So why not try similar thing with Signal. So here we are. 
