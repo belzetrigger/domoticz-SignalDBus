@@ -188,6 +188,7 @@ URL/Action: script:///home/domoticz/domoticz/plugins/domoticz-SignalDBus/externa
 * press the `test` button
 * if it works, apply your settings
 * if not, turn on DEBUG and have a look into Log and also check if Sender-Text-Device get changed.
+
 This is kind of a work around. Calling direct http request from notification to domoticz did not worked.
 
 ### Receiver
