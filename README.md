@@ -20,10 +20,10 @@ Early state of notification plugin that works with [Secure Messenger Signal](htt
 | signalDomoticzService.py      | script to listens for new signal messages and calls domoticz |
 | signalDomoticzService.service | to run the Listener as service                               |
 
-* [Setup Signal](##Prepare-Whisper-System-aka-Signal)
-* [Setup Domoticz](##Installation-and-Setup-Plugin)
-* [Usage](##Usage)
-* [Bugs / To Dos](##Bugs-and-ToDos)
+* [Setup Signal](#Prepare-Whisper-System-aka-Signal)
+* [Setup Domoticz](#Installation-and-Setup-Plugin)
+* [Usage](#Usage)
+* [Bugs / To Dos](#Bugs-and-ToDos)
 
 
 ## Summary
